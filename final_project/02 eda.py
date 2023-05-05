@@ -11,6 +11,14 @@ display(bikedf)
 
 # COMMAND ----------
 
+# Arrived - left
+# left = 1 if person left station
+#  
+#
+# 
+
+# COMMAND ----------
+
 df = spark.read.format('delta').load(GROUP_DATA_PATH + 'bdf')
 display(df)
 
@@ -73,7 +81,7 @@ display(bdf)
 
 # COMMAND ----------
 
-mdf = spark.read.format('delta').load(GROUP_DATA_PATH + 'EDA_total')
+mdf = spark.read.format('delta').load(GROUP_DATA_PATH + 'Silver_Data')
 
 # COMMAND ----------
 
