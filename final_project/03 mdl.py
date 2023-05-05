@@ -13,7 +13,31 @@ print("YOUR CODE HERE...")
 
 # COMMAND ----------
 
-import json
+import mlflow 
+import mlflow.sklearn
+import shutil
 
+from pyspark.sql.types import *
+from pyspark.sql.functions import pandas_udf, PandasUDFType
+
+# COMMAND ----------
+
+from sklearn.model_selection import TimeSeriesSplit
+
+# COMMAND ----------
+
+mdf = spark.read.format('delta').load('dbfs:/FileStore/tables/G08/' + 'Silver_Data')	
+
+# COMMAND ----------
+
+mdf = spark.read.format('delta').load(GROUP_DATA_PATH + 'Silver_Data')
+
+# COMMAND ----------
+
+mdf = mdf.withColumn('start_hour', hour('started_at'))
+
+# COMMAND ----------
+
+import json
 # Return Success
 dbutils.notebook.exit(json.dumps({"exit_code": "OK"}))
