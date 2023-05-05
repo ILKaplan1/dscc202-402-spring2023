@@ -185,7 +185,7 @@ merged_df = merged_df.drop(['relevant_time_plus_1h', 'rolling_left', 'rolling_ar
 
 total_df = spark.createDataFrame(merged_df)
 
-total_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(GROUP_DATA_PATH + 'Silver_Data')
+total_df.write.format("delta").mode("overwrite").save(GROUP_DATA_PATH + 'Silver_Data')
 
 
 # COMMAND ----------
