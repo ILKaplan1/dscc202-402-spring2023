@@ -224,122 +224,37 @@ print("R2:", r2(combined, 'net_change', 'prediction'))
 
 # COMMAND ----------
 
+from mlflow.tracking.client import MlflowClient
 
 
 # COMMAND ----------
 
-dbutils.fs.cp("runs:/<RUN_ID>/artifacts/<MODEL_NAME>", "/tmp/<MODEL_NAME>")
+client = MlflowClient()
+model_version_details = client.get_model_version(name=model_name, version=1)
 
-# Register the staging model
-!databricks mlflow model create --run-id <RUN_ID> --model-name <MODEL_NAME> --staging
-
-# Register the production model
-!databricks mlflow model create --run-id <RUN_ID> --model-name <MODEL_NAME> --production
-
+model_version_details.status
 
 # COMMAND ----------
 
-with mlflow.start_run():
-    # Train your model
-    net_change_model = train_net_change_model(mdf)
-    
-    # Log the model with MLflow and store the artifacts
-    mlflow.spark.log_model(net_change_model, model_name, artifact_path="staging")
-    mlflow.spark.log_model(net_change_model, model_name, artifact_path="production")
-
-
-# COMMAND ----------
-
-param_space = {
-    'order': hp.choice('order', [(1, 1, 0), (2, 1, 0), (3, 1, 0)]),
-    'seasonal_order': hp.choice('seasonal_order', [((1, 0, 0, 12)), ((2, 0, 0, 12)), ((3, 0, 0, 12))]),
-    'enforce_stationarity': hp.choice('enforce_stationarity', [True, False]),
-    'enforce_invertibility': hp.choice('enforce_invertibility', [True, False])
-}
-
+model_name = "G08_model"
+model_version = "1"
+client.transition_model_version_stage(
+    name=model_name,
+    version=model_version,
+    stage="Production"
+)
 
 # COMMAND ----------
 
-# Define the evaluation function for hyperopt
-def eval_sarima(params):
-    # Extract hyperparameters
-    order = params['order']
-    seasonal_order = params['seasonal_order']
-    enforce_stationarity = params['enforce_stationarity']
-    enforce_invertibility = params['enforce_invertibility']
-
-    # Split data into train and test sets
-    train_data, test_data = mdf.randomSplit([0.7, 0.3], seed=123)
-
-    # Train the model
-    model = SARIMAX(train_data.select('net_change').toPandas(),
-                    order=order, seasonal_order=seasonal_order,
-                    enforce_stationarity=enforce_stationarity,
-                    enforce_invertibility=enforce_invertibility)
-    model_fit = model.fit()
-
-    # Make predictions on test data
-    pred = model_fit.forecast(steps=len(test_data))
-
-    # Calculate MSE
-    mse = mean_squared_error(test_data.select('net_change').toPandas(), pred)
-
-    # Log the hyperparameters and evaluation metric
-    with mlflow.start_run():
-        mlflow.log_params(params)
-        mlflow.log_metric('mse', mse)
-
-    # Return MSE for hyperopt optimization
-    return mse
-
-# COMMAND ----------
-
-# Use SparkTrials to scale hyperopt optimization
-spark_trials = SparkTrials(parallelism=2)
-
-# Optimize the model hyperparameters using hyperopt
-with mlflow.start_run():
-    best_params = fmin(fn=eval_sarima,
-                       space=param_space,
-                       algo=tpe.suggest,
-                       max_evals=10,
-                       trials=spark_trials)
-
-    # Log the best hyperparameters
-    mlflow.log_params(best_params)
-
-    # Train the model using the best hyperparameters
-    order = best_params['order']
-    seasonal_order = best_params['seasonal_order']
-    enforce_stationarity = best_params['enforce_stationarity']
-    enforce_invertibility = best_params['enforce_invertibility']
-
-    model = SARIMAX(mdf.select('net_change').toPandas(),
-                    order=order, seasonal_order=seasonal_order,
-                    enforce_stationarity=enforce_stationarity,
-                    enforce_invertibility=enforce_invertibility)
-    model_fit = model.fit()
-    
-    # Save the model as "G08_model"
-    mlflow.spark.log_model(model_fit, "G08_model")
-
+client.transition_model_version_stage(
+    name=model_name,
+    version=2,
+    stage="Staging"
+)
 
 # COMMAND ----------
 
 
-
-# COMMAND ----------
-
-from sklearn.model_selection import TimeSeriesSplit
-
-# COMMAND ----------
-
-import statsmodels.api as sm
-model = sm.tsa.ARIMA(endog=yt, order=(1,1,1))
-
-# COMMAND ----------
-
-out_df = 
 
 # COMMAND ----------
 
