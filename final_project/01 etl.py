@@ -85,7 +85,7 @@ def padder(x):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Add weather data and aggregate
+# MAGIC ## Ignore all above
 
 # COMMAND ----------
 
@@ -165,9 +165,27 @@ import numpy as np
 df1 = filteredb_df.toPandas()
 df2 = filteredw_df.toPandas()
 
-merged_dataframe = pd.merge_asof(df1, df2, left_on = 'relevant_time', right_on='date_time', direction = 'nearest')
-total_df = spark.createDataFrame(merged_dataframe)
-total_df.write.format("delta").mode("overwrite").save(GROUP_DATA_PATH + 'Silver_Data')
+merged_df = pd.merge_asof(df1, df2, left_on = 'relevant_time', right_on='date_time', direction = 'nearest')
+
+merged_df['left'] = 0
+merged_df.loc[merged_df['start_station_name'] == 'W 31 St & 7 Ave', 'left'] = 1
+merged_df['arrived'] = 0
+merged_df.loc[merged_df['end_station_name'] == 'W 31 St & 7 Ave', 'arrived'] = 1
+merged_df['relevant_time_plus_1h'] = merged_df['relevant_time'] + pd.Timedelta(hours=1)
+
+merged_df['rolling_left'] = merged_df.set_index('relevant_time')['left'].rolling('1h').sum().values
+merged_df['rolling_arrived'] = merged_df.set_index('relevant_time')['arrived'].rolling('1h').sum().values
+
+merged_df['left_within_1h'] = merged_df.set_index('relevant_time_plus_1h')['rolling_left'].shift(1).values
+merged_df['arrived_within_1h'] = merged_df.set_index('relevant_time_plus_1h')['rolling_arrived'].shift(1).values
+
+merged_df['net_change'] = merged_df['arrived_within_1h'] - merged_df['left_within_1h']
+
+merged_df = merged_df.drop(['relevant_time_plus_1h', 'rolling_left', 'rolling_arrived', 'arrived_within_1h', 'left_within_1h'], axis=1)
+
+total_df = spark.createDataFrame(merged_df)
+
+total_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(GROUP_DATA_PATH + 'Silver_Data')
 
 
 # COMMAND ----------
