@@ -37,11 +37,6 @@ warnings.filterwarnings("ignore")
 
 # COMMAND ----------
 
-mdf = spark.read.format('delta').load("dbfs:/FileStore/tables/G08/" + 'Silver_Data')
-display(mdf)
-
-# COMMAND ----------
-
 from pyspark.sql.functions import col
 
 net_change_range = mdf.agg({"net_change": "max"}).collect()[0][0] - mdf.agg({"net_change": "min"}).collect()[0][0]
@@ -225,6 +220,35 @@ print("R2:", r2(combined, 'net_change', 'prediction'))
 # COMMAND ----------
 
 from mlflow.tracking.client import MlflowClient
+
+# COMMAND ----------
+
+# Delete everything from the "Gold_Data" table
+spark.sql("DELETE FROM delta.`dbfs:/FileStore/tables/G08/Gold_Data`")
+
+
+# COMMAND ----------
+
+display(combined)
+
+# COMMAND ----------
+
+# Delete everything from the "Gold_Data" table
+spark.sql("DELETE FROM delta.`dbfs:/FileStore/tables/G08/Gold_Data`")
+
+
+# COMMAND ----------
+
+from pyspark.sql import SparkSession
+
+# Disable Delta optimizations
+spark.conf.set("spark.databricks.optimizer.delta.enableWholeStageCodegen", "false")
+
+# Save the combined DataFrame as Delta
+combined.write.format("delta").mode("overwrite").save('dbfs:/FileStore/tables/G08/Gold_Data')
+
+# Re-enable Delta optimizations
+spark.conf.set("spark.databricks.optimizer.delta.enableWholeStageCodegen", "true")
 
 
 # COMMAND ----------

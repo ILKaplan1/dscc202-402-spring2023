@@ -11,11 +11,7 @@ display(bikedf)
 
 # COMMAND ----------
 
-# Arrived - left
-# left = 1 if person left station
-#  
-#
-# 
+
 
 # COMMAND ----------
 
