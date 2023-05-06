@@ -40,3 +40,7 @@ display(spark.read.format('delta').load(BRONZE_STATION_STATUS_PATH))
 
 # DBTITLE 1,Display the current (within the hour) NYC Weather Information
 display(spark.read.format('delta').load(BRONZE_NYC_WEATHER_PATH))
+
+# COMMAND ----------
+
+
